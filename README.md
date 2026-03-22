@@ -11,7 +11,7 @@ Healthcare providers frequently encounter conflicting patient data across system
 ### Prerequisites
 
 - Python 3.11+
-- An Anthropic API key ([get one here](https://console.anthropic.com))
+- An Anthropic API key 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
 
 ### Local Setup
 
