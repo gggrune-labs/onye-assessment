@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Data Reconciliation Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        clinical: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        slate: {
+                            750: '#293548',
+                            850: '#172033',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Source Sans 3', system-ui, sans-serif; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .score-ring { transition: stroke-dashoffset 0.8s ease-in-out; }
+        .tab-active { border-bottom: 2px solid #16a34a; color: #166534; font-weight: 600; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-clinical-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-900 leading-tight">Clinical Reconciliation Engine</h1>
+                    <p class="text-xs text-gray-500">Hybrid Rule-Based + AI Medication Analysis</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <label for="apiKeyInput" class="text-xs font-medium text-gray-500">API Key</label>
+                    <input id="apiKeyInput" type="password" placeholder="Enter API key"
+                           class="text-sm border border-gray-300 rounded-md px-3 py-1.5 w-48 focus:ring-2 focus:ring-clinical-500 focus:border-clinical-500 outline-none"
+                           value="dev-key-change-in-production">
+                </div>
+                <span id="statusIndicator" class="flex items-center gap-1.5 text-xs">
+                    <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                    <span class="text-gray-500">Ready</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav class="flex gap-6 border-b border-gray-200 mt-2">
+            <button onclick="switchTab('reconciliation')" id="tab-reconciliation"
+                    class="py-3 text-sm tab-active transition-colors">
+                Medication Reconciliation
+            </button>
+            <button onclick="switchTab('quality')" id="tab-quality"
+                    class="py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                Data Quality Check
+            </button>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- Reconciliation Tab -->
+        <div id="panel-reconciliation" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- Input Panel -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Patient & Sources</h2>
+                        <button onclick="loadSampleReconciliation()" class="text-xs text-clinical-600 hover:text-clinical-700 font-medium">
+                            Load Sample Data
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Patient Context</label>
+                            <textarea id="patientContextInput" rows="6"
+                                      class="w-full text-sm font-mono border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-clinical-500 focus:border-clinical-500 outline-none resize-none"
+                                      placeholder='{"age": 67, "conditions": [...], "recent_labs": {...}}'></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Medication Sources (array)</label>
+                            <textarea id="sourcesInput" rows="12"
+                                      class="w-full text-sm font-mono border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-clinical-500 focus:border-clinical-500 outline-none resize-none"
+                                      placeholder='[{"system": "Hospital EHR", "medication": "...", ...}]'></textarea>
+                        </div>
+                        <button onclick="runReconciliation()" id="reconcileBtn"
+                                class="w-full bg-clinical-600 hover:bg-clinical-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Reconcile Medications
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6">
+                    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Reconciliation Result</h2>
+                    <div id="reconciliationResult" class="text-sm text-gray-400 italic">
+                        Submit patient data to see reconciliation results.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approved/Rejected Actions Log -->
+            <div id="actionsLog" class="hidden bg-white rounded-xl border border-gray-200 p-6">
+                <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Review Log</h2>
+                <div id="actionsLogContent" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- Data Quality Tab -->
+        <div id="panel-quality" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- Input Panel -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Patient Record</h2>
+                        <button onclick="loadSampleQuality()" class="text-xs text-clinical-600 hover:text-clinical-700 font-medium">
+                            Load Sample Data
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <textarea id="qualityInput" rows="18"
+                                  class="w-full text-sm font-mono border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-clinical-500 focus:border-clinical-500 outline-none resize-none"
+                                  placeholder='{"demographics": {...}, "medications": [...], ...}'></textarea>
+                        <button onclick="runQualityCheck()" id="qualityBtn"
+                                class="w-full bg-clinical-600 hover:bg-clinical-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            Validate Data Quality
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="bg-white rounded-xl border border-gray-200 p-6">
+                    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Quality Assessment</h2>
+                    <div id="qualityResult" class="text-sm text-gray-400 italic">
+                        Submit a patient record to see quality scores.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

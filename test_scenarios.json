@@ -1,0 +1,276 @@
+{
+  "reconciliation_scenarios": [
+    {
+      "id": "scenario_01_metformin_dose_conflict",
+      "description": "Diabetic patient with declining kidney function. Three sources disagree on Metformin dose. Tests renal dosing adjustment logic.",
+      "request": {
+        "patient_context": {
+          "age": 67,
+          "conditions": ["Type 2 Diabetes", "Hypertension", "Chronic Kidney Disease Stage 3"],
+          "recent_labs": {"eGFR": 45, "hba1c": 7.2, "creatinine": 1.8}
+        },
+        "sources": [
+          {
+            "system": "Hospital EHR",
+            "medication": "Metformin 1000mg twice daily",
+            "last_updated": "2024-10-15",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Primary Care",
+            "medication": "Metformin 500mg twice daily",
+            "last_updated": "2025-01-20",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Pharmacy",
+            "medication": "Metformin 1000mg daily",
+            "last_filled": "2025-01-25",
+            "source_reliability": "medium"
+          }
+        ]
+      },
+      "expected_reconciled": "Metformin 500mg twice daily",
+      "expected_reasoning_contains": ["kidney", "eGFR", "dose reduction"]
+    },
+    {
+      "id": "scenario_02_aspirin_complete_disagreement",
+      "description": "Four sources with total disagreement on aspirin status. Tests source hierarchy and pharmacy fill evidence.",
+      "request": {
+        "patient_context": {
+          "age": 72,
+          "conditions": ["Coronary Artery Disease", "Hypertension"],
+          "recent_labs": {"eGFR": 68}
+        },
+        "sources": [
+          {
+            "system": "Hospital EHR",
+            "medication": "Aspirin 81mg daily",
+            "last_updated": "2024-08-10",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Cardiology Clinic",
+            "medication": "Aspirin 325mg daily",
+            "last_updated": "2024-12-05",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Pharmacy",
+            "medication": "Aspirin 81mg",
+            "last_filled": "2025-02-01",
+            "source_reliability": "medium"
+          },
+          {
+            "system": "Patient Portal",
+            "medication": "Not currently taking aspirin",
+            "last_updated": "2025-01-15",
+            "source_reliability": "low"
+          }
+        ]
+      },
+      "expected_reconciled": "Aspirin 81mg daily",
+      "expected_reasoning_contains": ["pharmacy fill", "coronary artery disease", "patient portal"]
+    },
+    {
+      "id": "scenario_03_blood_thinner_high_risk",
+      "description": "Warfarin dosing conflict with INR lab data. Tests safety check for anticoagulant management.",
+      "request": {
+        "patient_context": {
+          "age": 58,
+          "conditions": ["Atrial Fibrillation", "Deep Vein Thrombosis History"],
+          "recent_labs": {"inr": 3.8, "creatinine": 1.1}
+        },
+        "sources": [
+          {
+            "system": "Anticoagulation Clinic",
+            "medication": "Warfarin 5mg daily",
+            "last_updated": "2025-02-10",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Primary Care",
+            "medication": "Warfarin 7.5mg daily",
+            "last_updated": "2024-11-30",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Pharmacy",
+            "medication": "Warfarin 5mg",
+            "last_filled": "2025-02-12",
+            "source_reliability": "medium"
+          }
+        ]
+      },
+      "expected_reconciled": "Warfarin 5mg daily",
+      "expected_reasoning_contains": ["INR", "anticoagulation clinic", "dose reduction"]
+    },
+    {
+      "id": "scenario_04_statin_concordance",
+      "description": "Two of three sources agree. Tests concordance bonus in evidence scoring.",
+      "request": {
+        "patient_context": {
+          "age": 55,
+          "conditions": ["Hyperlipidemia", "Type 2 Diabetes"],
+          "recent_labs": {"eGFR": 85}
+        },
+        "sources": [
+          {
+            "system": "Primary Care",
+            "medication": "Atorvastatin 40mg daily",
+            "last_updated": "2025-01-10",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Pharmacy",
+            "medication": "Atorvastatin 40mg daily",
+            "last_filled": "2025-01-15",
+            "source_reliability": "medium"
+          },
+          {
+            "system": "Hospital Discharge",
+            "medication": "Atorvastatin 20mg daily",
+            "last_updated": "2024-06-20",
+            "source_reliability": "high"
+          }
+        ]
+      },
+      "expected_reconciled": "Atorvastatin 40mg daily",
+      "expected_reasoning_contains": ["two sources agree", "concordance"]
+    },
+    {
+      "id": "scenario_05_insulin_complex",
+      "description": "Complex insulin regimen with basal/bolus confusion across systems.",
+      "request": {
+        "patient_context": {
+          "age": 45,
+          "conditions": ["Type 1 Diabetes"],
+          "recent_labs": {"hba1c": 8.9, "eGFR": 92}
+        },
+        "sources": [
+          {
+            "system": "Endocrinology",
+            "medication": "Insulin Glargine 30 units at bedtime",
+            "last_updated": "2025-02-01",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Primary Care",
+            "medication": "Insulin Glargine 24 units at bedtime",
+            "last_updated": "2024-09-15",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Pharmacy",
+            "medication": "Insulin Glargine 30 units",
+            "last_filled": "2025-02-05",
+            "source_reliability": "medium"
+          }
+        ]
+      },
+      "expected_reconciled": "Insulin Glargine 30 units at bedtime",
+      "expected_reasoning_contains": ["endocrinology", "specialist", "A1c"]
+    },
+    {
+      "id": "scenario_06_stale_records_only",
+      "description": "All sources are over 6 months old. Tests timeliness degradation.",
+      "request": {
+        "patient_context": {
+          "age": 78,
+          "conditions": ["Heart Failure", "Atrial Fibrillation"],
+          "recent_labs": {"eGFR": 35, "potassium": 5.1}
+        },
+        "sources": [
+          {
+            "system": "Hospital EHR",
+            "medication": "Lisinopril 20mg daily",
+            "last_updated": "2024-03-10",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Primary Care",
+            "medication": "Lisinopril 10mg daily",
+            "last_updated": "2024-04-22",
+            "source_reliability": "high"
+          }
+        ]
+      },
+      "expected_reconciled": "Lisinopril 10mg daily",
+      "expected_reasoning_contains": ["kidney function", "potassium", "stale"]
+    },
+    {
+      "id": "scenario_07_pediatric_dose",
+      "description": "Pediatric patient with weight-based dosing conflict.",
+      "request": {
+        "patient_context": {
+          "age": 8,
+          "conditions": ["Epilepsy"],
+          "recent_labs": {}
+        },
+        "sources": [
+          {
+            "system": "Pediatric Neurology",
+            "medication": "Levetiracetam 250mg twice daily",
+            "last_updated": "2025-01-28",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Primary Care",
+            "medication": "Levetiracetam 500mg twice daily",
+            "last_updated": "2024-08-15",
+            "source_reliability": "high"
+          },
+          {
+            "system": "Pharmacy",
+            "medication": "Levetiracetam 250mg",
+            "last_filled": "2025-02-01",
+            "source_reliability": "medium"
+          }
+        ]
+      },
+      "expected_reconciled": "Levetiracetam 250mg twice daily",
+      "expected_reasoning_contains": ["pediatric", "specialist", "neurology"]
+    }
+  ],
+  "data_quality_scenarios": [
+    {
+      "id": "quality_01_implausible_vitals",
+      "description": "Record with impossible blood pressure and stale data.",
+      "request": {
+        "demographics": {"name": "John Doe", "dob": "1955-03-15", "gender": "M"},
+        "medications": ["Metformin 500mg", "Lisinopril 10mg"],
+        "allergies": [],
+        "conditions": ["Type 2 Diabetes"],
+        "vital_signs": {"blood_pressure": "340/180", "heart_rate": 72},
+        "last_updated": "2024-06-15"
+      },
+      "expected_high_severity_fields": ["vital_signs.blood_pressure"]
+    },
+    {
+      "id": "quality_02_incomplete_record",
+      "description": "Minimal record missing most clinical data.",
+      "request": {
+        "demographics": {"name": "Jane Smith"},
+        "medications": null,
+        "allergies": null,
+        "conditions": null,
+        "vital_signs": null,
+        "last_updated": null
+      },
+      "expected_overall_score_below": 40
+    },
+    {
+      "id": "quality_03_good_record",
+      "description": "Well-documented patient record that should score high.",
+      "request": {
+        "demographics": {"name": "Robert Chen", "dob": "1980-07-22", "gender": "M"},
+        "medications": ["Metformin 1000mg twice daily", "Lisinopril 20mg daily", "Atorvastatin 40mg daily"],
+        "allergies": ["Penicillin", "Sulfa drugs"],
+        "conditions": ["Type 2 Diabetes", "Hypertension", "Hyperlipidemia"],
+        "vital_signs": {"blood_pressure": "128/78", "heart_rate": 76, "temperature": 98.6, "oxygen_saturation": 98},
+        "last_updated": "2025-03-01"
+      },
+      "expected_overall_score_above": 75
+    }
+  ]
+}
